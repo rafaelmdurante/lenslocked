@@ -22,9 +22,16 @@ func contactHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func pathHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := fmt.Fprint(w, r.URL.Path)
+	if err != nil {
+		return
+	}
+}
 func main() {
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/contact", contactHandler)
+	http.HandleFunc("/path", pathHandler)
 	fmt.Println("starting server on :3000...")
 	err := http.ListenAndServe(":3000", nil)
 	if err != nil {
