@@ -10,11 +10,10 @@ import (
 	"path/filepath"
 )
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+func executeTemplate(w http.ResponseWriter, filepath string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	tpl, err := template.ParseFiles(
-		filepath.Join("templates", "home.gohtml")) // this makes it OS agnostic
+	tpl, err := template.ParseFiles(filepath)
 	if err != nil {
 		log.Printf("parsing template: %v", err)
 		http.Error(w, "there was an error parsing the template",
@@ -31,24 +30,14 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	fp := filepath.Join("templates", "home.gohtml")
+	executeTemplate(w, fp)
+}
+
 func contactHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	tpl, err := template.ParseFiles("templates/contact.gohtml")
-	if err != nil {
-		log.Printf("parsing template: %v", err)
-		http.Error(w, "there was an error parsing the template",
-			http.StatusInternalServerError)
-		return
-	}
-
-	err = tpl.Execute(w, nil)
-	if err != nil {
-		log.Printf("executing template: %v", err)
-		http.Error(w, "there was an error executing the template",
-			http.StatusInternalServerError)
-		return
-	}
+	fp := filepath.Join("templates", "contact.gohtml")
+	executeTemplate(w, fp)
 }
 
 func faqHandler(w http.ResponseWriter, r *http.Request) {
