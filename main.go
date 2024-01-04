@@ -33,9 +33,20 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, err := fmt.Fprint(w, "<h1>Contact Page</h1><p>To get in touch, "+
-		"email me at <a href=\"mailto:my@email.com\">my@email.com</a>.")
+
+	tpl, err := template.ParseFiles("templates/contact.gohtml")
 	if err != nil {
+		log.Printf("parsing template: %v", err)
+		http.Error(w, "there was an error parsing the template",
+			http.StatusInternalServerError)
+		return
+	}
+
+	err = tpl.Execute(w, nil)
+	if err != nil {
+		log.Printf("executing template: %v", err)
+		http.Error(w, "there was an error executing the template",
+			http.StatusInternalServerError)
 		return
 	}
 }
