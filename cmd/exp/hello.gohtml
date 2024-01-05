@@ -1,9 +1,20 @@
 <h1>Hello, {{.Name}}</h1>
 
-<script>
-    const user = {
-        "name": {{.Name}}
-    }
+<p>{{.Name}} is {{.Age}} years old and lives in {{.Address.Street}}, in {{
+    .Address.City}} along with his family.</p>
 
-    console.log(user);
-</script>
+<p>His salary is {{.Salary}} per month, which is not that much yet.</p>
+
+<p>{{.Name}} likes travelling a lot, he has visited:</p>
+
+<ul>
+    {{ range .CountriesVisited }} <li>{{.}}</li> {{end}}
+</ul>
+
+<p>{{.Name}} is also a language lover. He's able to speak:</p>
+
+<ul>
+    {{ range $lang, $fluency := .LanguagesFluency }}
+        <li>{{$lang}}: {{$fluency}}</li>
+    {{end}}
+</ul>
