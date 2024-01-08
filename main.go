@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rafaelmdurante/lenslocked/controllers"
 	"github.com/rafaelmdurante/lenslocked/views"
 	"log"
 	"net/http"
@@ -45,19 +46,25 @@ func galleriesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	router := chi.NewRouter()
-	router.Use(middleware.Logger)
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 
-	router.Get("/", homeHandler)
-	router.Get("/contact", contactHandler)
-	router.Get("/faq", faqHandler)
-	router.Get("/galleries/{id}", galleriesHandler)
-	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+	homeTmpl, err := views.Parse(filepath.Join("templates", "home.gohtml"))
+	if err != nil {
+		panic(err)
+	}
+
+	r.Method(http.MethodGet, "/", controllers.Static{Template: homeTmpl})
+	r.Get("/", homeHandler)
+	r.Get("/contact", contactHandler)
+	r.Get("/faq", faqHandler)
+	r.Get("/galleries/{id}", galleriesHandler)
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
 
 	fmt.Println("starting server on :3000...")
-	err := http.ListenAndServe(":3000", router)
+	err = http.ListenAndServe(":3000", r)
 	if err != nil {
 		return
 	}
