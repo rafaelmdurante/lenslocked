@@ -49,16 +49,24 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	homeTmpl, err := views.Parse(filepath.Join("templates", "home.gohtml"))
+	tpl, err := views.Parse(filepath.Join("templates", "home.gohtml"))
 	if err != nil {
 		panic(err)
 	}
+	r.Get("/", controllers.StaticHandler(tpl))
 
-	r.Method(http.MethodGet, "/", controllers.Static{Template: homeTmpl})
-	r.Get("/", homeHandler)
-	r.Get("/contact", contactHandler)
-	r.Get("/faq", faqHandler)
-	r.Get("/galleries/{id}", galleriesHandler)
+	tpl, err = views.Parse(filepath.Join("templates", "contact.gohtml"))
+	if err != nil {
+		panic(err)
+	}
+	r.Get("/contact", controllers.StaticHandler(tpl))
+
+	tpl, err = views.Parse(filepath.Join("templates", "faq.gohtml"))
+	if err != nil {
+		panic(err)
+	}
+	r.Get("/faq", controllers.StaticHandler(tpl))
+
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
