@@ -32,3 +32,14 @@ func Parse(filepath string) (Template, error) {
 		htmlTpl: htmlTpl,
 	}, nil
 }
+
+// Must function is based on the Go's template package same name function
+func Must(t Template, err error) Template {
+	if err != nil {
+		// in this case we do want to panic as there is no point in starting
+		// the server if a template fails to be parsed
+		panic(err)
+	}
+
+	return t
+}
