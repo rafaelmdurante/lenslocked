@@ -15,10 +15,10 @@ func main() {
 	r.Use(middleware.Logger)
 
 	r.Get("/", controllers.StaticHandler(views.Must(
-		views.ParseFS(templates.FS, "home.gohtml", "layout-parts.gohtml"))))
+		views.ParseFS(templates.FS, "layout-page.gohtml", "home-page.gohtml"))))
 
 	r.Get("/contact", controllers.StaticHandler(views.Must(
-		views.ParseFS(templates.FS, "contact.gohtml"))))
+		views.ParseFS(templates.FS, "layout-page.gohtml", "contact-page.gohtml"))))
 
 	r.Get("/faq", controllers.FAQ(views.Must(
 		views.ParseFS(templates.FS, "faq.gohtml"))))
