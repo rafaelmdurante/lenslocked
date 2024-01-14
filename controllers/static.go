@@ -1,18 +1,17 @@
 package controllers
 
 import (
-	"github.com/rafaelmdurante/lenslocked/views"
 	"html/template"
 	"net/http"
 )
 
-func StaticHandler(tpl views.Template) http.HandlerFunc {
+func StaticHandler(tpl Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl.Execute(w, nil)
 	}
 }
 
-func FAQ(tpl views.Template) http.HandlerFunc {
+func FAQ(tpl Template) http.HandlerFunc {
 	questions := []struct {
 		// string prevents XSS attack as templates will be
 		// parsed as strings instead of html - <a> tags wouldn't work,
