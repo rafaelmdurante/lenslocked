@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -76,4 +77,17 @@ CREATE TABLE IF NOT EXISTS orders (
 	}
 
 	fmt.Printf("User id '%v' created.\n", id)
+
+	var n, e string
+	err = db.QueryRow(
+		`SELECT name, email FROM users WHERE id = $1`, id,
+	).Scan(&n, &e)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		fmt.Println("no rows found!")
+	}
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("User information: name=%s email=%s", n, e)
 }
