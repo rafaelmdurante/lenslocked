@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/rafaelmdurante/lenslocked/models"
 )
 
 type PostgresConfig struct {
@@ -117,21 +117,28 @@ func main() {
 	fmt.Println("Connected!")
 
 	// create tables
-	createTables(db)
+	//createTables(db)
 
 	// create user
-	var userID int
-	createUser(db, "Robert Smith", "singer@thecure.com", &userID)
+	//var userID int
+	//createUser(db, "Robert Smith", "singer@thecure.com", &userID)
+	//fmt.Println(userID)
 
-	fmt.Println(userID)
 	// select single user
-	findUserByID(db, userID)
+	//findUserByID(db, userID)
 
 	// create fake orders
-	createFakeOrders(db, userID, 5)
+	//createFakeOrders(db, userID, 5)
 
 	// read orders
-	findAllOrders(db, userID)
+	//findAllOrders(db, userID)
+
+	us := models.UserService{DB: db}
+	user, err := us.Create("bob@email.com", "my secret password")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(user)
 }
 
 func findAllOrders(db *sql.DB, userID int) {
