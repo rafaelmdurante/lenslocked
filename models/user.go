@@ -45,3 +45,24 @@ func (s *UserService) Create(email, password string) (*User, error) {
 
 	return &user, nil
 }
+
+func (s *UserService) Authenticate(email, password string) (*User, error) {
+	email = strings.ToLower(email)
+	user := User{Email: email}
+
+	err := s.DB.QueryRow(
+		`SELECT id, users.password_hash FROM users WHERE email=$1`,
+		email,
+	).Scan(&user.ID, &user.PasswordHash)
+
+	if err != nil {
+		return nil, fmt.Errorf("authenticate: %w", err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("authenticate: %w", err)
+	}
+
+	return &user, nil
+}
