@@ -46,6 +46,8 @@ func (u Users) SignIn(w http.ResponseWriter, r *http.Request) {
 	u.Templates.SignIn.Execute(w, data)
 }
 
+// ProcessSignIn authenticates users and sets the necessary cookies for
+// authentication
 func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Email    string
@@ -62,5 +64,26 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// set cookie
+	cookie := http.Cookie{
+		Name:     "email",
+		Value:    user.Email,
+		Path:     "/",
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+
 	fmt.Fprintf(w, "user authenticated: %+v", user)
+}
+
+// CurrentUser gets the current user from the cookie
+func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	email, err := r.Cookie("email")
+	if err != nil {
+		fmt.Fprint(w, "the email cookie could not be read")
+		return
+	}
+
+	fmt.Fprintf(w, "email cookie: %s\n", email.Value)
+	fmt.Fprintf(w, "headers: %+v\n", r.Header)
 }
