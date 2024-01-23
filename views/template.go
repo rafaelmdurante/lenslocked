@@ -25,20 +25,21 @@ func (t Template) Execute(w http.ResponseWriter, data interface{}) {
 }
 
 func ParseFS(filesystem fs.FS, pattern ...string) (Template, error) {
-	htmlTpl, err := template.ParseFS(filesystem, pattern...)
-	if err != nil {
-		return Template{}, fmt.Errorf("parsing template: %w", err)
-	}
-	return Template{
-		htmlTpl: htmlTpl,
-	}, nil
-}
+	// create new template named after the first gohtml file
+	htmlTpl := template.New(pattern[0])
+	// declare the function into the template
+	htmlTpl = htmlTpl.Funcs(
+		template.FuncMap{
+			"csrfField": func() template.HTML {
+				return `<input type="hidden" />`
+			},
+		})
 
-func Parse(filepath string) (Template, error) {
-	htmlTpl, err := template.ParseFiles(filepath)
+	htmlTpl, err := htmlTpl.ParseFS(filesystem, pattern...)
 	if err != nil {
 		return Template{}, fmt.Errorf("parsing template: %w", err)
 	}
+
 	return Template{
 		htmlTpl: htmlTpl,
 	}, nil
