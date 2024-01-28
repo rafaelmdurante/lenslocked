@@ -1,9 +1,11 @@
 package views
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/gorilla/csrf"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -34,12 +36,27 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 	// set header and execute the template
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	err = tpl.Execute(w, data)
+	// avoid superfluous response.WriteHeader error
+	// this happens when tpl.Execute begins executing the template and writing
+	// the results to http.ResponseWriter, but if no errors are found, http.rw
+	// sets the header to 200, later if an error occurs, the status code won't
+	// change because it could have already responded to the client
+	// one way to avoid the superfluous error message si to buffer the results
+	// from the template execution
+	var b bytes.Buffer
+	err = tpl.Execute(&b, data)
 	if err != nil {
 		log.Printf("executing template: %v", err)
 		http.Error(w, "there was an error executing the template",
 			http.StatusInternalServerError)
 		return
+	}
+
+	_, err = io.Copy(w, &b)
+	if err != nil {
+		log.Printf("executing template copying buffer: %v", err)
+		http.Error(w, "there was an error executing the template",
+			http.StatusInternalServerError)
 	}
 }
 
@@ -49,8 +66,8 @@ func ParseFS(filesystem fs.FS, pattern ...string) (Template, error) {
 	// declare the function into the template
 	htmlTpl = htmlTpl.Funcs(
 		template.FuncMap{
-			"csrfField": func() template.HTML {
-				return `<input type="hidden" />`
+			"csrfField": func() (template.HTML, error) {
+				return "", fmt.Errorf("csrfField not implemented")
 			},
 		})
 
