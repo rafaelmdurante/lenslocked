@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"github.com/gorilla/csrf"
 	"html/template"
 	"io/fs"
 	"log"
@@ -12,10 +13,28 @@ type Template struct {
 	htmlTpl *template.Template
 }
 
-func (t Template) Execute(w http.ResponseWriter, data interface{}) {
+func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}) {
+	// ensure every incoming http request has their own template to work with
+	tpl, err := t.htmlTpl.Clone()
+	if err != nil {
+		log.Printf("cloning template: %v", err)
+		http.Error(w, "there was an error rendering the page", http.StatusInternalServerError)
+		return
+	}
+
+	// use the gorilla/csrf package to generate the csrf html code
+	tpl = tpl.Funcs(
+		template.FuncMap{
+			"csrfField": func() template.HTML {
+				return csrf.TemplateField(r)
+			},
+		},
+	)
+
+	// set header and execute the template
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	err := t.htmlTpl.Execute(w, data)
+	err = tpl.Execute(w, data)
 	if err != nil {
 		log.Printf("executing template: %v", err)
 		http.Error(w, "there was an error executing the template",
