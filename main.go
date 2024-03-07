@@ -46,9 +46,16 @@ func main() {
 		DB: db,
 	}
 
-	users := controllers.Users{
-		UserService: &userService, //TODO: set this!
+	// create session service
+	sessionService := models.SessionService{
+		DB: db,
 	}
+
+	users := controllers.Users{
+		UserService:    &userService,
+		SessionService: &sessionService,
+	}
+
 	users.Templates.New = views.Must(views.ParseFS(templates.FS,
 		"signup.gohtml", "tailwind.gohtml"))
 	r.Get("/signup", users.New)
