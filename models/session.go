@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/rafaelmdurante/lenslocked/rand"
 )
@@ -53,11 +54,26 @@ func (ss *SessionService) Create(userID int) (*Session, error) {
 	}
 
 	row := ss.DB.QueryRow(`
+		UPDATE sessions
+		SET token_hash = $2
+		WHERE user_id = $1
+		RETURNING id;`, session.UserID, session.TokenHash)
+	err = row.Scan(&session.ID)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		// If no sessions exist, we will get an error. That means we need to
+		// create a session object for that user.
+		row = ss.DB.QueryRow(`
 		INSERT INTO sessions (user_id, token_hash)
 		VALUES ($1, $2)
-		RETURNING id;`,
-		session.UserID, session.TokenHash)
-	err = row.Scan(&session.ID)
+		RETURNING id;`, session.UserID, session.TokenHash)
+		// The error will be overwritten with either a new error or nil
+		err = row.Scan(&session.ID)
+	}
+
+	// If the error was not sql.ErrNoRows, we need to check to see if it was any
+	// other error. If it was sql.ErrNoRows it will be overwritten inside the if
+	// block, and we still need to check for any errors.
 	if err != nil {
 		return nil, fmt.Errorf("error creating session token: %w", err)
 	}
