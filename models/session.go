@@ -86,7 +86,31 @@ func (ss *SessionService) Create(userID int) (*Session, error) {
 // construct a User struct. It is a bit of intermingling responsibility though.
 func (ss *SessionService) User(token string) (*User, error) {
 	// TODO: implement ss.User
-	return nil, nil
+	// 1. hash the session token
+	tokenHash := ss.hash(token)
+    var user User
+
+	// 2. query for the session with that hash
+	row := ss.DB.QueryRow(`
+        SELECT user_id
+        FROM sessions
+        WHERE token_hash = $1;`, tokenHash)
+	err := row.Scan(&user.ID)
+    if err != nil {
+        return nil, fmt.Errorf("user: %w", err)
+    }
+
+	// 3. using the userID from the session, we need to query for that user
+    row = ss.DB.QueryRow(`
+        SELECT email, password_hash
+        FROM users WHERE id = $1`, user.ID)
+    err = row.Scan(&user.Email, &user.PasswordHash)
+    if err != nil {
+        return nil, fmt.Errorf("error finding user: %w", err)
+    }
+
+	// 4. return the user
+	return &user, nil
 }
 
 func (ss *SessionService) hash(token string) string {
