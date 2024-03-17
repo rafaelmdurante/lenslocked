@@ -57,6 +57,7 @@ func main() {
 	}
 
 	users.Templates.New = views.Must(views.ParseFS(templates.FS,
+
 		"signup.gohtml", "tailwind.gohtml"))
 	r.Get("/signup", users.New)
 	r.Post("/signup", users.Create)
@@ -67,6 +68,10 @@ func main() {
 	r.Post("/signin", users.ProcessSignIn)
 
 	r.Get("/users/me", users.CurrentUser)
+
+	// using POST instead of DELETE because it is quite annoying to create links
+	// and forms that performe the verb without the use of JavaScript
+	r.Post("/signout", users.ProcessSignOut)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
