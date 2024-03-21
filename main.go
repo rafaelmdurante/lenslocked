@@ -41,6 +41,12 @@ func main() {
 	// ensure connection will be closed when main function finishes
 	defer db.Close()
 
+    // run the migrations
+    err = models.Migrate(db, "migrations")
+    if err != nil {
+        panic(err)
+    }
+
 	// create user service
 	userService := models.UserService{
 		DB: db,

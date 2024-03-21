@@ -3,7 +3,9 @@ package models
 import (
 	"database/sql"
 	"fmt"
+
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/pressly/goose"
 )
 
 type PostgresConfig struct {
@@ -43,4 +45,18 @@ func Open(config PostgresConfig) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func Migrate(db *sql.DB, dir string) error {
+    err := goose.SetDialect("postgres")
+    if err != nil {
+        return fmt.Errorf("migrate: failed to set dialect: %w", err)
+    }
+
+    err = goose.Up(db, dir)
+    if err != nil {
+        return fmt.Errorf("migrate: failed to run migration: %w", err)
+    }
+
+    return nil
 }
