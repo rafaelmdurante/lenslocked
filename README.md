@@ -10,6 +10,7 @@ Pre-requisites:
 
 - Docker
 - Go installed to run locally
+- Goose (migrations) installed
 
 ```bash
 # from the root folder
@@ -41,3 +42,15 @@ There are no automated tests. In order to make it work, you'll have to:
 $ docker exec -it lenslocked_db /usr/bin/psql -U baloo -d lenslocked
 ```
 
+### Migrations
+
+```bash
+# get the current status for migrations
+goose postgres "host=localhost port=5432 user=baloo password=junglebook dbname=lenslocked sslmode=disable" status
+
+# apply the pending migrations
+goose postgres "host=localhost port=5432 user=baloo password=junglebook dbname=lenslocked sslmode=disable" up
+
+# undo all the migrations
+goose postgres "host=localhost port=5432 user=baloo password=junglebook dbname=lenslocked sslmode=disable" down
+```
