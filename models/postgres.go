@@ -3,9 +3,10 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pressly/goose"
+	"github.com/pressly/goose/v3"
 )
 
 type PostgresConfig struct {
@@ -47,6 +48,8 @@ func Open(config PostgresConfig) (*sql.DB, error) {
 	return db, nil
 }
 
+// Migrate runs the migrations, but it requires the .sql files to exist in the
+// computer. That means binaries without embedded sql files will not work.
 func Migrate(db *sql.DB, dir string) error {
     err := goose.SetDialect("postgres")
     if err != nil {
@@ -60,3 +63,23 @@ func Migrate(db *sql.DB, dir string) error {
 
     return nil
 }
+
+// MigrateFS embeds migration files into the binary so it works without having
+// the sql files available in the computer.
+func MigrateFS(db *sql.DB, migrationsFS fs.FS, dir string) error {
+    // in case the dir is an empty string, they probably meant the current dir
+    // and goose wants a period for that
+    if dir == "" {
+        dir = "."
+    }
+
+    goose.SetBaseFS(migrationsFS)
+    defer func() {
+        // ensure that we remove the FS on the off chance some other of our app
+        // uses goose for migrations and doesn't want to use our FS.
+        goose.SetBaseFS(nil)
+    }()
+
+    return Migrate(db, dir)
+}
+

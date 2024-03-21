@@ -9,6 +9,7 @@ import (
 	"github.com/rafaelmdurante/lenslocked/models"
 	"github.com/rafaelmdurante/lenslocked/templates"
 	"github.com/rafaelmdurante/lenslocked/views"
+	"github.com/rafaelmdurante/lenslocked/migrations"
 	"net/http"
 )
 
@@ -42,7 +43,7 @@ func main() {
 	defer db.Close()
 
     // run the migrations
-    err = models.Migrate(db, "migrations")
+    err = models.MigrateFS(db, migrations.FS, ".")
     if err != nil {
         panic(err)
     }
