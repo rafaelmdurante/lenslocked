@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // make it private so only code within your package can use this
@@ -20,12 +21,23 @@ func main() {
     // having a custom type of ctxKey makes it different from the same "key" of
     // pure string
     ctx = context.WithValue(ctx, favouriteColour, "blue")
-    ctx = context.WithValue(ctx, "favourite-colour", "red")
 
     // get the value from the context
-    fmt.Println(
-        ctx.Value(favouriteColour),
-        ctx.Value("favourite-colour"),
-    )
+    value := ctx.Value(favouriteColour)
+
+
+    // example of casting the value to its original type - ie string
+    str, ok := value.(string)
+    if !ok {
+        fmt.Println("not a string")
+    } else {
+        // it won't compile strings.HasPrefix(value, "b") because 'value' is
+        // of type 'any'
+        // this can only be performed on strings
+        fmt.Println(strings.HasPrefix(str, "b")) // output: true
+    }
+
+    // print both variables with the same value
+    fmt.Println(value, str) // output: blue blue
 }
 
