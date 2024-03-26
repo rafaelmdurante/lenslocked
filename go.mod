@@ -5,13 +5,16 @@ go 1.21.5
 require (
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/gorilla/csrf v1.7.2
+	github.com/gostaticanalysis/nilerr v0.1.1
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/pressly/goose/v3 v3.19.2
 	golang.org/x/crypto v0.18.0
+	golang.org/x/tools v0.17.0
 )
 
 require (
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gostaticanalysis/comment v1.4.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect

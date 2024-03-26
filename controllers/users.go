@@ -2,9 +2,15 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/rafaelmdurante/lenslocked/models"
 	"net/http"
+
+	"github.com/rafaelmdurante/lenslocked/context"
+	"github.com/rafaelmdurante/lenslocked/models"
 )
+
+type UserMiddleware struct {
+	SessionService *models.SessionService
+}
 
 type Users struct {
 	Templates struct {
@@ -98,25 +104,54 @@ func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    deleteCookie(w, CookieSession)
-    http.Redirect(w, r, "/signin", http.StatusFound)
+	deleteCookie(w, CookieSession)
+	http.Redirect(w, r, "/signin", http.StatusFound)
 }
 
 // CurrentUser gets the current user from the cookie
 func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
-	tokenCookie, err := readCookie(r, CookieSession)
-	if err != nil {
-		fmt.Println(err)
-		http.Redirect(w, r, "/signin", http.StatusFound)
-		return
-	}
+	user := context.User(r.Context())
 
-	user, err := u.SessionService.User(tokenCookie)
-	if err != nil {
-		fmt.Println(err)
+	if user == nil {
 		http.Redirect(w, r, "/signin", http.StatusFound)
 		return
 	}
 
 	fmt.Fprintf(w, "current user: %s\n", user.Email)
+}
+
+func (umw UserMiddleware) SetUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// First try to read the cookie. If we run into an error reading it,
+		// proceed with the request. The goal of this middleware isn't to limit
+		// access. It only sets the user in the context if it can.
+		token, err := readCookie(r, CookieSession)
+		if err != nil {
+			// cannot lookup the user with no cookie, so proceed without a user
+			// being set, then return
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// if we have a token, try to lookup the user with that token
+		user, err := umw.SessionService.User(token)
+		if err != nil {
+			// invalid or expired token, then proceed without setting a user
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// if we get to this point, we have a user that we can store in the ctx
+		ctx := r.Context()
+		// we need to derive a new context to store values in it. be certain
+		// thath we import our own context package, and not the one from the
+		// standard library.
+		ctx = context.WithUser(ctx, user)
+		// get a request that uses our new context. this is done in a way
+		// similar to how contexts work - we call a withcontext function
+		// and it returns us a new request with the context set
+		r = r.WithContext(ctx)
+		// call the handler that our middleware was applied to with the updated
+		next.ServeHTTP(w, r)
+	})
 }

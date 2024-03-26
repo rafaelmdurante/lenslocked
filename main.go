@@ -6,10 +6,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/csrf"
 	"github.com/rafaelmdurante/lenslocked/controllers"
+	"github.com/rafaelmdurante/lenslocked/migrations"
 	"github.com/rafaelmdurante/lenslocked/models"
 	"github.com/rafaelmdurante/lenslocked/templates"
 	"github.com/rafaelmdurante/lenslocked/views"
-	"github.com/rafaelmdurante/lenslocked/migrations"
 	"net/http"
 )
 
@@ -42,11 +42,11 @@ func main() {
 	// ensure connection will be closed when main function finishes
 	defer db.Close()
 
-    // run the migrations
-    err = models.MigrateFS(db, migrations.FS, ".")
-    if err != nil {
-        panic(err)
-    }
+	// run the migrations
+	err = models.MigrateFS(db, migrations.FS, ".")
+	if err != nil {
+		panic(err)
+	}
 
 	// create user service
 	userService := models.UserService{
@@ -84,15 +84,20 @@ func main() {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
 
-	fmt.Println("starting server on :3000...")
+	// middleware to set the user from token
+	umw := controllers.UserMiddleware{
+		SessionService: &sessionService,
+	}
 
 	// random 32-byte key
 	csrfKey := "A4roiqjosijdfoi145ADSdfoqiwer"
 	csrfMiddleware := csrf.Protect(
 		[]byte(csrfKey),
-		csrf.Secure(false)) // false because it is not https yet
+		// 'false' because it is not https yet, fix before deploy to prod
+		csrf.Secure(false))
 
-	err = http.ListenAndServe(":3000", csrfMiddleware(r))
+	fmt.Println("starting server on :3000...")
+	err = http.ListenAndServe(":3000", csrfMiddleware(umw.SetUser(r)))
 	if err != nil {
 		return
 	}
