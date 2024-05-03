@@ -3,8 +3,9 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -22,7 +23,6 @@ func (s *UserService) Create(email, password string) (*User, error) {
 
 	hashedBytes, err := bcrypt.GenerateFromPassword(
 		[]byte(password), bcrypt.DefaultCost)
-
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -54,7 +54,6 @@ func (s *UserService) Authenticate(email, password string) (*User, error) {
 		`SELECT id, users.password_hash FROM users WHERE email=$1`,
 		email,
 	).Scan(&user.ID, &user.PasswordHash)
-
 	if err != nil {
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}

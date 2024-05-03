@@ -109,14 +109,9 @@ func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
 }
 
 // CurrentUser gets the current user from the cookie
+// SetUser and RequireUser middleware are required
 func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	user := context.User(r.Context())
-
-	if user == nil {
-		http.Redirect(w, r, "/signin", http.StatusFound)
-		return
-	}
-
 	fmt.Fprintf(w, "current user: %s\n", user.Email)
 }
 
@@ -153,5 +148,19 @@ func (umw UserMiddleware) SetUser(next http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 		// call the handler that our middleware was applied to with the updated
 		next.ServeHTTP(w, r)
+	})
+}
+
+// RequireUser is a middleware to get the user from the context.
+// It assumes the SetUser middleware has been run BEFORE, so it doesn't need
+// to perform the same database lookups.
+func (umw UserMiddleware) RequireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := context.User(r.Context())
+		if user == nil {
+			http.Redirect(w, r, "/signin", http.StatusFound)
+			return
+		}
+        next.ServeHTTP(w, r)
 	})
 }

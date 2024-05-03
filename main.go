@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/csrf"
@@ -10,26 +12,9 @@ import (
 	"github.com/rafaelmdurante/lenslocked/models"
 	"github.com/rafaelmdurante/lenslocked/templates"
 	"github.com/rafaelmdurante/lenslocked/views"
-	"net/http"
 )
 
 func main() {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-
-	// config routes
-	r.Get("/", controllers.StaticHandler(views.Must(views.ParseFS(
-		templates.FS,
-		"home.gohtml", "tailwind.gohtml"))))
-
-	r.Get("/contact", controllers.StaticHandler(views.Must(views.ParseFS(
-		templates.FS,
-		"contact.gohtml", "tailwind.gohtml"))))
-
-	r.Get("/faq", controllers.FAQ(views.Must(views.ParseFS(
-		templates.FS,
-		"faq.gohtml", "tailwind.gohtml"))))
-
 	// config database
 	postgresConfig := models.DefaultPostgresConfig()
 
@@ -48,42 +33,16 @@ func main() {
 		panic(err)
 	}
 
-	// create user service
+	// set up services
 	userService := models.UserService{
 		DB: db,
 	}
 
-	// create session service
 	sessionService := models.SessionService{
 		DB: db,
 	}
 
-	users := controllers.Users{
-		UserService:    &userService,
-		SessionService: &sessionService,
-	}
-
-	users.Templates.New = views.Must(views.ParseFS(templates.FS,
-
-		"signup.gohtml", "tailwind.gohtml"))
-	r.Get("/signup", users.New)
-	r.Post("/signup", users.Create)
-
-	users.Templates.SignIn = views.Must(views.ParseFS(templates.FS,
-		"signin.gohtml", "tailwind.gohtml"))
-	r.Get("/signin", users.SignIn)
-	r.Post("/signin", users.ProcessSignIn)
-
-	r.Get("/users/me", users.CurrentUser)
-
-	// using POST instead of DELETE because it is quite annoying to create links
-	// and forms that performe the verb without the use of JavaScript
-	r.Post("/signout", users.ProcessSignOut)
-
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Page not found", http.StatusNotFound)
-	})
-
+	// set up middleware
 	// middleware to set the user from token
 	umw := controllers.UserMiddleware{
 		SessionService: &sessionService,
@@ -96,8 +55,56 @@ func main() {
 		// 'false' because it is not https yet, fix before deploy to prod
 		csrf.Secure(false))
 
+	// set up controllers
+	users := controllers.Users{
+		UserService:    &userService,
+		SessionService: &sessionService,
+	}
+	users.Templates.New = views.Must(views.ParseFS(templates.FS,
+		"signup.gohtml", "tailwind.gohtml"))
+	users.Templates.SignIn = views.Must(views.ParseFS(templates.FS,
+		"signin.gohtml", "tailwind.gohtml"))
+
+	// set up router and routes
+	r := chi.NewRouter()
+
+	r.Use(csrfMiddleware)
+	r.Use(middleware.Logger)
+	r.Use(umw.SetUser)
+
+	// config routes
+	r.Get("/", controllers.StaticHandler(views.Must(views.ParseFS(
+		templates.FS,
+		"home.gohtml", "tailwind.gohtml"))))
+
+	r.Get("/contact", controllers.StaticHandler(views.Must(views.ParseFS(
+		templates.FS,
+		"contact.gohtml", "tailwind.gohtml"))))
+
+	r.Get("/faq", controllers.FAQ(views.Must(views.ParseFS(
+		templates.FS,
+		"faq.gohtml", "tailwind.gohtml"))))
+
+	r.Get("/signup", users.New)
+	r.Post("/signup", users.Create)
+	r.Get("/signin", users.SignIn)
+	r.Post("/signin", users.ProcessSignIn)
+	// using POST instead of DELETE because it is quite annoying to create links
+	// and forms that performe the verb without the use of JavaScript
+	r.Post("/signout", users.ProcessSignOut)
+
+    // this creates sort of a namespace for the routes
+	r.Route("/users/me", func (r chi.Router)  {
+	    r.Use(umw.RequireUser)
+        r.Get("/", users.CurrentUser)
+	})
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Page not found", http.StatusNotFound)
+	})
+
 	fmt.Println("starting server on :3000...")
-	err = http.ListenAndServe(":3000", csrfMiddleware(umw.SetUser(r)))
+	err = http.ListenAndServe(":3000", r)
 	if err != nil {
 		return
 	}
