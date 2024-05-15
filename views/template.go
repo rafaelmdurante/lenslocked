@@ -3,12 +3,15 @@ package views
 import (
 	"bytes"
 	"fmt"
-	"github.com/gorilla/csrf"
 	"html/template"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/csrf"
+	"github.com/rafaelmdurante/lenslocked/models"
+	"github.com/rafaelmdurante/lenslocked/context"
 )
 
 type Template struct {
@@ -30,6 +33,9 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 			"csrfField": func() template.HTML {
 				return csrf.TemplateField(r)
 			},
+            "currentUser": func() *models.User {
+                return context.User(r.Context())
+            },
 		},
 	)
 
@@ -69,6 +75,9 @@ func ParseFS(filesystem fs.FS, pattern ...string) (Template, error) {
 			"csrfField": func() (template.HTML, error) {
 				return "", fmt.Errorf("csrfField not implemented")
 			},
+            "currentUser": func() (*models.User, error) {
+                return nil, fmt.Errorf("currentUser not implemented")
+            },
 		})
 
 	htmlTpl, err := htmlTpl.ParseFS(filesystem, pattern...)

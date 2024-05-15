@@ -17,6 +17,7 @@
             <a class="text-lg font-semibold hover:text-blue-100 pr-8" href="/faq">FAQ</a>
         </div>
         <div class="space-x-4">
+            {{ if currentUser }}
             <!--
                 The 'DELETE' action is a form because browsers do not support
                 DELETE well. Therefore we are using POST instead. But to be 
@@ -29,10 +30,12 @@
                 </div>
                 <button type="submit">Sign out</button>
             </form>
+            {{ else }}
             <a href="/signin">Sign in</a>
             <a href="/signup" class="px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded">
                 Sign up
             </a>
+            {{ end }}
         </div>
     </nav>
 </header>
