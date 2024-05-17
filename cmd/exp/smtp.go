@@ -17,14 +17,6 @@ const (
 // main function re-declared in the package because it is experimental
 // ignore LSP error/warnings
 func main() {
-	email := models.Email{
-		From:      "test@lenslocked.com",
-		To:        "raf@ael.com",
-		Subject:   "this is a test email",
-		Plaintext: "this is the body of the email",
-		HTML:      `<h1>Hello there!</h1><p>This is the HTML email</p>`,
-	}
-
     es := models.NewEmailService(models.SMTPConfig{
         Host: host,
         Port: port,
@@ -32,7 +24,7 @@ func main() {
         Password: password,
     })
 
-    err := es.Send(email)
+    err := es.ForgotPassword("pipersyd@proton.me", "https://lenslocked.com/reset-pw?token=abc123")
     if err != nil {
         panic(err)
     }
