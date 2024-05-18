@@ -177,3 +177,5 @@ Temporary Items
 
 # binary that is used with live reloader modd, no need to be committed
 lenslocked
+
+.env
