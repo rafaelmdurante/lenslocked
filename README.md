@@ -45,6 +45,12 @@ $ docker exec -it lenslocked_db /usr/bin/psql -U baloo -d lenslocked
 ### Migrations
 
 ```bash
+# create a migration file
+cd migrations
+goose $name_of_file $sql_dialect
+goose fix
+# now open editor and write the migration
+
 # get the current status for migrations
 goose postgres "host=localhost port=5432 user=baloo password=junglebook dbname=lenslocked sslmode=disable" status
 
