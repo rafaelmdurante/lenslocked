@@ -1,9 +1,13 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
+	"strings"
 
 	"github.com/go-mail/mail/v2"
+	"github.com/rafaelmdurante/lenslocked/templates"
 )
 
 const (
@@ -46,7 +50,7 @@ func (es *EmailService) Send(email Email) error {
 	msg := mail.NewMessage()
 
 	msg.SetHeader("To", email.To)
-    es.setFrom(msg, email)
+	es.setFrom(msg, email)
 	msg.SetHeader("Subject", email.Subject)
 
 	switch {
@@ -71,29 +75,72 @@ func (es *EmailService) setFrom(msg *mail.Message, email Email) {
 	var from string
 
 	switch {
-    case email.From != "":
-        from = email.From
-    case es.DefaultSender != "":
-        from = es.DefaultSender
-    default:
-        from = DefaultSender
+	case email.From != "":
+		from = email.From
+	case es.DefaultSender != "":
+		from = es.DefaultSender
+	default:
+		from = DefaultSender
 	}
 
-    msg.SetHeader("From", from)
+	msg.SetHeader("From", from)
 }
 
 func (es *EmailService) ForgotPassword(to, resetURL string) error {
-    email := Email{
-        Subject: "Reset your password",
-        To: to,
-        Plaintext: "To reset your password, please visit the following link: " + resetURL,
-        HTML: `<p>To reset your password, please visit the following link: <a href="` + resetURL + `">` + resetURL,
-    }
+	email := Email{
+		Subject: "Reset your password",
+		To:      to,
+		// Plaintext: "To reset your password, please visit the following link: " + resetURL,
+		// HTML: `<p>To reset your password, please visit the following link: <a href="` + resetURL + `">` + resetURL,
+	}
 
-    err := es.Send(email)
-    if err != nil {
-        return fmt.Errorf("forgot password email: %w", err)
-    }
+	// TEMPLATES GENERAL
+	data := struct {
+	    ResetURL string
+	} {
+	    ResetURL: resetURL,
+	}
 
-    return nil
+	var emailHtml = "email.html"
+
+	// HTML
+    html := template.New(emailHtml) // it has to be the filename: https://stackoverflow.com/a/49043639
+
+        html, err := html.ParseFS(templates.FS, emailHtml)
+	if err != nil {
+		return fmt.Errorf("error parsing html: %w", err)
+	}
+
+	var b bytes.Buffer
+	err = html.Execute(&b, data)
+	if err != nil {
+		return fmt.Errorf("error executing html: %w", err)
+	}
+	email.HTML = b.String()
+
+	// PLAINTEXT
+    var emailPlain = "email.plain"
+	tmplPlain, err := template.New(emailPlain).ParseFS(templates.FS, emailPlain)
+	if err != nil {
+		return fmt.Errorf("error parsing plain: %w", err)
+	}
+
+    // another approach rather than bytes buffer
+	var plainBuilder strings.Builder
+	err = tmplPlain.Execute(&plainBuilder, data)
+	if err != nil {
+		return fmt.Errorf("error executing plain: %w", err)
+	}
+	email.Plaintext = plainBuilder.String()
+
+    // double check
+    fmt.Println(email)
+
+	// SEND EMAIL
+	err = es.Send(email)
+	if err != nil {
+		return fmt.Errorf("forgot password email: %w", err)
+	}
+
+	return nil
 }
