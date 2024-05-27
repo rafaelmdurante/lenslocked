@@ -64,6 +64,8 @@ func main() {
 		"signup.gohtml", "tailwind.gohtml"))
 	users.Templates.SignIn = views.Must(views.ParseFS(templates.FS,
 		"signin.gohtml", "tailwind.gohtml"))
+	users.Templates.ForgotPassword = views.Must(views.ParseFS(templates.FS,
+		"forgot-pw.gohtml", "tailwind.gohtml"))
 
 	// set up router and routes
 	r := chi.NewRouter()
@@ -93,11 +95,14 @@ func main() {
 	// and forms that performe the verb without the use of JavaScript
 	r.Post("/signout", users.ProcessSignOut)
 
-    // this creates sort of a namespace for the routes
-	r.Route("/users/me", func (r chi.Router)  {
-	    r.Use(umw.RequireUser)
-        r.Get("/", users.CurrentUser)
+	// this creates sort of a namespace for the routes
+	r.Route("/users/me", func(r chi.Router) {
+		r.Use(umw.RequireUser)
+		r.Get("/", users.CurrentUser)
 	})
+
+	r.Get("/forgot-pw", users.ForgotPassword)
+	r.Post("/forgot-pw", users.ProcessForgotPassword)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
