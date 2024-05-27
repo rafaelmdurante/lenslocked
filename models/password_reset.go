@@ -34,7 +34,7 @@ type PasswordResetService struct {
 	Duration time.Duration
 }
 
-func (prs *PasswordResetService) Create(userID int) (*PasswordReset, error) {
+func (prs *PasswordResetService) Create(email string) (*PasswordReset, error) {
 	return nil, fmt.Errorf("TODO: implement PasswordResetService.Create")
 }
 

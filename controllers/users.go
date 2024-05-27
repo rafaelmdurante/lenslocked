@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/rafaelmdurante/lenslocked/context"
 	"github.com/rafaelmdurante/lenslocked/models"
@@ -14,11 +15,15 @@ type UserMiddleware struct {
 
 type Users struct {
 	Templates struct {
-		New    Template
-		SignIn Template
+		New            Template
+		SignIn         Template
+		ForgotPassword Template
+		CheckYourEmail Template
 	}
-	UserService    *models.UserService
-	SessionService *models.SessionService
+	UserService          *models.UserService
+	SessionService       *models.SessionService
+	PasswordResetService *models.PasswordResetService
+	EmailService         *models.EmailService
 }
 
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +120,53 @@ func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "current user: %s\n", user.Email)
 }
 
+// ForgotPassword handles the request for forgotten password
+// It prefill the user's email
+func (u Users) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+
+	data.Email = r.FormValue("email")
+	u.Templates.ForgotPassword.Execute(w, r, data)
+}
+
+func (u Users) ProcessForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+
+	data.Email = r.FormValue("email")
+
+	newPassword, err := u.PasswordResetService.Create(data.Email)
+	if err != nil {
+		// TODO: handle other cases in the future, for instance, if a user
+		// does not exist with the email address
+		fmt.Println(err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+
+	vals := url.Values{
+		"token": {newPassword.Token},
+	}
+
+	// TODO: make the url configurable
+	resetURL := "https://www.lenslocked.com/reset-pw?" + vals.Encode()
+
+	err = u.EmailService.ForgotPassword(data.Email, resetURL)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+
+	// don't render the token here! we need them to confirm they have access to
+	// their email to get the token. sharing it here would be a massive security
+	// hole.
+	u.Templates.CheckYourEmail.Execute(w, r, data)
+}
+
 func (umw UserMiddleware) SetUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// First try to read the cookie. If we run into an error reading it,
@@ -161,6 +213,6 @@ func (umw UserMiddleware) RequireUser(next http.Handler) http.Handler {
 			http.Redirect(w, r, "/signin", http.StatusFound)
 			return
 		}
-        next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
