@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/csrf"
+	"github.com/joho/godotenv"
 	"github.com/rafaelmdurante/lenslocked/controllers"
 	"github.com/rafaelmdurante/lenslocked/migrations"
 	"github.com/rafaelmdurante/lenslocked/models"
@@ -14,12 +17,57 @@ import (
 	"github.com/rafaelmdurante/lenslocked/views"
 )
 
-func main() {
-	// config database
-	postgresConfig := models.DefaultPostgresConfig()
+type config struct {
+	PSQL models.PostgresConfig
+	SMTP models.SMTPConfig
+	CSRF struct {
+		Key string
+		Secure bool
+	}
+	Server struct {
+		Address string
+	}
+}
 
+func loadEnvConfig() (config, error) {
+	var cfg config
+
+	err := godotenv.Load()
+	if err != nil {
+		return cfg, err
+	}
+
+	// TODO: PSQL
+	cfg.PSQL = models.DefaultPostgresConfig()
+
+	// TODO: STMP
+	cfg.SMTP.Host = os.Getenv("SMTP_HOST")
+	cfg.SMTP.Username = os.Getenv("SMTP_USERNAME")
+	cfg.SMTP.Password = os.Getenv("SMTP_PASSWORD")
+	cfg.SMTP.Port, err = strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		return cfg, err
+	}
+
+	// TODO: CSRF
+	cfg.CSRF.Key = "A4roiqjosijdfoi145ADSdfoqiwer"
+	cfg.CSRF.Secure = false
+
+	// TODO: Server
+	cfg.Server.Address = ":3000"
+
+	return cfg, nil
+}
+
+func main() {
+	cfg, err := loadEnvConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	// config database
 	// open connection
-	db, err := models.Open(postgresConfig)
+	db, err := models.Open(cfg.PSQL)
 	if err != nil {
 		panic(err)
 	}
@@ -41,6 +89,10 @@ func main() {
 	sessionService := models.SessionService{
 		DB: db,
 	}
+	pwResetService := models.PasswordResetService{
+		DB: db,
+	}
+	emailService := models.NewEmailService(cfg.SMTP)
 
 	// set up middleware
 	// middleware to set the user from token
@@ -49,16 +101,17 @@ func main() {
 	}
 
 	// random 32-byte key
-	csrfKey := "A4roiqjosijdfoi145ADSdfoqiwer"
 	csrfMiddleware := csrf.Protect(
-		[]byte(csrfKey),
+		[]byte(cfg.CSRF.Key),
 		// 'false' because it is not https yet, fix before deploy to prod
-		csrf.Secure(false))
+		csrf.Secure(cfg.CSRF.Secure))
 
 	// set up controllers
 	users := controllers.Users{
 		UserService:    &userService,
 		SessionService: &sessionService,
+		PasswordResetService: &pwResetService,
+		EmailService: emailService,
 	}
 	users.Templates.New = views.Must(views.ParseFS(templates.FS,
 		"signup.gohtml", "tailwind.gohtml"))
@@ -66,6 +119,8 @@ func main() {
 		"signin.gohtml", "tailwind.gohtml"))
 	users.Templates.ForgotPassword = views.Must(views.ParseFS(templates.FS,
 		"forgot-pw.gohtml", "tailwind.gohtml"))
+	users.Templates.CheckYourEmail = views.Must(views.ParseFS(templates.FS,
+		"check-your-email.gohtml", "tailwind.gohtml"))
 
 	// set up router and routes
 	r := chi.NewRouter()
@@ -108,9 +163,9 @@ func main() {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
 
-	fmt.Println("starting server on :3000...")
-	err = http.ListenAndServe(":3000", r)
+	fmt.Printf("starting server on %s...\n", cfg.Server.Address)
+	err = http.ListenAndServe(cfg.Server.Address, r)
 	if err != nil {
-		return
+		panic(err)
 	}
 }
