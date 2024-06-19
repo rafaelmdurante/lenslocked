@@ -19,6 +19,7 @@ type Users struct {
 		SignIn         Template
 		ForgotPassword Template
 		CheckYourEmail Template
+		ResetPassword  Template
 	}
 	UserService          *models.UserService
 	SessionService       *models.SessionService
@@ -216,3 +217,50 @@ func (umw UserMiddleware) RequireUser(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// ResetPassword is a handler to render the form. It parses a token from the
+// URL query parameters. The token is inserted into the form as a hidden value.
+func (u Users) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Token string
+	}
+	data.Token = r.FormValue("token")
+	u.Templates.ResetPassword.Execute(w, r, data)
+}
+
+// ProcessResetPassword is a handler to process the password reset request.
+func (u Users) ProcessResetPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Token	 string
+		Password string
+	}
+	data.Token = r.FormValue("token")
+	data.Password = r.FormValue("password")
+
+	// attempt to consume the token
+	user, err := u.PasswordResetService.Consume(data.Token)
+	if err != nil {
+		fmt.Println(err)
+		// TODO: Distinguis between server errors and invalid token errors
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	// update the user's password
+	// TODO: Update the user's password
+
+	// create a new session
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		fmt.Println(err)
+		http.Redirect(w, r, "/signin", http.StatusFound)
+		return
+	}
+
+	// sign the user in
+	setCookie(w, CookieSession, session.Token)
+
+	// redirect them to the /users/me page
+	http.Redirect(w, r, "/users/me", http.StatusFound)
+}
+

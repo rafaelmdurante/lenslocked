@@ -121,6 +121,8 @@ func main() {
 		"forgot-pw.gohtml", "tailwind.gohtml"))
 	users.Templates.CheckYourEmail = views.Must(views.ParseFS(templates.FS,
 		"check-your-email.gohtml", "tailwind.gohtml"))
+	users.Templates.ResetPassword = views.Must(views.ParseFS(templates.FS,
+		"reset-pw.gohtml", "tailwind.gohtml"))
 
 	// set up router and routes
 	r := chi.NewRouter()
@@ -158,6 +160,9 @@ func main() {
 
 	r.Get("/forgot-pw", users.ForgotPassword)
 	r.Post("/forgot-pw", users.ProcessForgotPassword)
+
+	r.Get("/reset-pw", users.ResetPassword)
+	r.Post("/reset-pw", users.ProcessResetPassword)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
