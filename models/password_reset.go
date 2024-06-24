@@ -31,7 +31,7 @@ type PasswordResetService struct {
 	DB *sql.DB
 	// BytesPerToken is used to determine how many bytes to use when generating
 	// each password reset token. If this value is not set or is less than the
-	// MiinBytesPerToken const it will be ignore and MinBytesPerToken will be
+	// MinBytesPerToken const it will be ignored and MinBytesPerToken will be
 	// used.
 	BytesPerToken int
 	// Duration is the amount of time that a PasswordReset is valid for.
@@ -70,8 +70,8 @@ func (prs *PasswordResetService) Create(email string) (*PasswordReset, error) {
 	}
 
 	pwReset := PasswordReset{
-		UserID: userID,
-		Token: token,
+		UserID:    userID,
+		Token:     token,
 		TokenHash: prs.hash(token),
 		ExpiresAt: time.Now().Add(duration),
 	}
@@ -94,12 +94,55 @@ func (prs *PasswordResetService) Create(email string) (*PasswordReset, error) {
 // We are going to consume a token and return the user associated with it,
 // or return an error if the token wasn't valid for any reason
 func (prs *PasswordResetService) Consume(token string) (*User, error) {
-	return nil, fmt.Errorf("TODO: Implement PasswordResetService.Consume")
-}
+	// validate that the token is valid and hasn't expired
+	tokenHash := prs.hash(token)
 
+	var user User
+	var pwReset PasswordReset
+
+	row := prs.DB.QueryRow(`
+			SELECT
+				pr.id,
+				pr.expires_at,
+				u.id,
+				u.email,
+				u.password_hash
+			FROM password_resets pr
+				JOIN users u ON u.id = pr.user_id
+			WHERE pr.token_hash = $1;`, tokenHash)
+
+	err := row.Scan(&pwReset.ID, &pwReset.ExpiresAt,
+		&user.ID, &user.Email, &user.PasswordHash)
+
+	if err != nil {
+		return nil, fmt.Errorf("consume get token: %w", err)
+	}
+
+	// lookup the user associated with the token to return that information
+	// delete the token not to be used again
+	if time.Now().After(pwReset.ExpiresAt) {
+		return nil, fmt.Errorf("token expired: %v", token)
+	}
+
+	err = prs.delete(pwReset.ID)
+	if err != nil {
+		return nil, fmt.Errorf("consume delete token: %w", err) 
+	}
+
+	return &user, nil
+}
 
 func (prs *PasswordResetService) hash(token string) string {
 	tokenHash := sha256.Sum256([]byte(token))
 
 	return base64.URLEncoding.EncodeToString(tokenHash[:])
+}
+
+func (prs *PasswordResetService) delete(id int) error {
+	_, err := prs.DB.Exec(`DELETE FROM password_resets WHERE id = $1;`, id)
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+
+	return nil
 }
