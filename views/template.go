@@ -10,15 +10,16 @@ import (
 	"net/http"
 
 	"github.com/gorilla/csrf"
-	"github.com/rafaelmdurante/lenslocked/models"
 	"github.com/rafaelmdurante/lenslocked/context"
+	"github.com/rafaelmdurante/lenslocked/models"
 )
 
 type Template struct {
 	htmlTpl *template.Template
 }
 
-func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}) {
+// Execute renders the page and takes errors to show to user
+func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}, errs ...error) {
 	// ensure every incoming http request has their own template to work with
 	tpl, err := t.htmlTpl.Clone()
 	if err != nil {
@@ -33,9 +34,17 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 			"csrfField": func() template.HTML {
 				return csrf.TemplateField(r)
 			},
-            "currentUser": func() *models.User {
-                return context.User(r.Context())
-            },
+			"currentUser": func() *models.User {
+				return context.User(r.Context())
+			},
+			"errors": func() []string {
+				var errorMessages []string
+				for _, err := range errs {
+					// TODO: don't keep this long term - we will see why in a later lesson
+					errorMessages = append(errorMessages, err.Error())
+				}
+				return errorMessages
+			},
 		},
 	)
 
@@ -75,9 +84,12 @@ func ParseFS(filesystem fs.FS, pattern ...string) (Template, error) {
 			"csrfField": func() (template.HTML, error) {
 				return "", fmt.Errorf("csrfField not implemented")
 			},
-            "currentUser": func() (*models.User, error) {
-                return nil, fmt.Errorf("currentUser not implemented")
-            },
+			"currentUser": func() (*models.User, error) {
+				return nil, fmt.Errorf("currentUser not implemented")
+			},
+			"errors": func() []string {
+				return nil
+			},
 		})
 
 	htmlTpl, err := htmlTpl.ParseFS(filesystem, pattern...)

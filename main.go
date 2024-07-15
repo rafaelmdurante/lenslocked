@@ -85,7 +85,6 @@ func main() {
 	userService := models.UserService{
 		DB: db,
 	}
-
 	sessionService := models.SessionService{
 		DB: db,
 	}
