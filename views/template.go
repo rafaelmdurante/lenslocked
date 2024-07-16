@@ -2,6 +2,7 @@ package views
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -18,6 +19,10 @@ type Template struct {
 	htmlTpl *template.Template
 }
 
+type public interface {
+	Public() string
+}
+
 // Execute renders the page and takes errors to show to user
 func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface{}, errs ...error) {
 	// ensure every incoming http request has their own template to work with
@@ -27,6 +32,8 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 		http.Error(w, "there was an error rendering the page", http.StatusInternalServerError)
 		return
 	}
+
+	errMessages := errMessages(errs...)
 
 	// use the gorilla/csrf package to generate the csrf html code
 	tpl = tpl.Funcs(
@@ -38,12 +45,7 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 				return context.User(r.Context())
 			},
 			"errors": func() []string {
-				var errorMessages []string
-				for _, err := range errs {
-					// TODO: don't keep this long term - we will see why in a later lesson
-					errorMessages = append(errorMessages, err.Error())
-				}
-				return errorMessages
+				return errMessages
 			},
 		},
 	)
@@ -73,6 +75,21 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 		http.Error(w, "there was an error executing the template",
 			http.StatusInternalServerError)
 	}
+}
+
+func errMessages(errs ...error) []string {
+	var messages []string
+	for _, err := range errs {
+		var publicError public
+		if errors.As(err, &publicError) {
+			messages = append(messages, publicError.Public())
+		} else {
+			fmt.Println(err)
+			messages = append(messages, "Something went wrong.")
+		}
+	}
+
+	return messages
 }
 
 func ParseFS(filesystem fs.FS, pattern ...string) (Template, error) {
