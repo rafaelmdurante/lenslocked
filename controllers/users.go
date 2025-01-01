@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/rafaelmdurante/lenslocked/context"
+	"github.com/rafaelmdurante/lenslocked/errors"
 	"github.com/rafaelmdurante/lenslocked/models"
 )
 
