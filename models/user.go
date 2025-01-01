@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	// a common pattern is to add the package as a prefix to the error for context
+	// a common pattern i to add the package as a prefix to the error for context
 	ErrEmailToken = errors.New("models: email address is already in use")
 )
 
