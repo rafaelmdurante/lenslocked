@@ -45,10 +45,12 @@ $ docker exec -it lenslocked_db /usr/bin/psql -U baloo -d lenslocked
 ### Migrations
 
 ```bash
-# create a migration file
+# to create a migration file
 cd migrations
-goose $name_of_file $sql_dialect
-goose fix
+# creates file with timestamp
+goose create <name_of_file_with_no_extension> <sql_dialect> # ie: users sql
+# converts the timestamp to a sequential number, easier to read
+goose fix 
 # now open editor and write the migration
 
 # get the current status for migrations
