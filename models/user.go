@@ -11,11 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	// a common pattern is to add the package as a prefix to the error for context
-	ErrEmailToken = errors.New("models: email address is already in use")
-)
-
 type User struct {
 	ID           int
 	Email        string
