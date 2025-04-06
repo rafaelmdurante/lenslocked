@@ -106,7 +106,9 @@ func main() {
 	csrfMiddleware := csrf.Protect(
 		[]byte(cfg.CSRF.Key),
 		// 'false' because it is not https yet, fix before deploy to prod
-		csrf.Secure(cfg.CSRF.Secure))
+		csrf.Secure(cfg.CSRF.Secure), // secure is false
+		csrf.Path("/")) // force csrf token to always use path `/` so works for all paths
+
 
 	// set up controllers
 	users := controllers.Users{
