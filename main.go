@@ -21,7 +21,7 @@ type config struct {
 	PSQL models.PostgresConfig
 	SMTP models.SMTPConfig
 	CSRF struct {
-		Key string
+		Key    string
 		Secure bool
 	}
 	Server struct {
@@ -92,6 +92,9 @@ func main() {
 		DB: db,
 	}
 	emailService := models.NewEmailService(cfg.SMTP)
+	galleryService := models.GalleryService{
+		DB: db,
+	}
 
 	// set up middleware
 	// middleware to set the user from token
@@ -107,10 +110,10 @@ func main() {
 
 	// set up controllers
 	users := controllers.Users{
-		UserService:    &userService,
-		SessionService: &sessionService,
+		UserService:          &userService,
+		SessionService:       &sessionService,
 		PasswordResetService: &pwResetService,
-		EmailService: emailService,
+		EmailService:         emailService,
 	}
 	users.Templates.New = views.Must(views.ParseFS(templates.FS,
 		"signup.gohtml", "tailwind.gohtml"))
@@ -122,6 +125,15 @@ func main() {
 		"check-your-email.gohtml", "tailwind.gohtml"))
 	users.Templates.ResetPassword = views.Must(views.ParseFS(templates.FS,
 		"reset-pw.gohtml", "tailwind.gohtml"))
+
+	// galleries controllers
+	galleries := controllers.Galleries{
+		GalleryService: &galleryService,
+	}
+	galleries.Templates.New = views.Must(views.ParseFS(
+		templates.FS,
+		"galleries/new.gohtml", "tailwind.gohtml",
+	))
 
 	// set up router and routes
 	r := chi.NewRouter()
@@ -162,6 +174,8 @@ func main() {
 
 	r.Get("/reset-pw", users.ResetPassword)
 	r.Post("/reset-pw", users.ProcessResetPassword)
+
+	r.Get("/galleries/new", galleries.New)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)

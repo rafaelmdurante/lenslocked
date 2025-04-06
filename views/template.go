@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"path"
 
 	"github.com/gorilla/csrf"
 	"github.com/rafaelmdurante/lenslocked/context"
@@ -94,7 +95,7 @@ func errMessages(errs ...error) []string {
 
 func ParseFS(filesystem fs.FS, pattern ...string) (Template, error) {
 	// create new template named after the first gohtml file
-	htmlTpl := template.New(pattern[0])
+	htmlTpl := template.New(path.Base(pattern[0]))
 	// declare the function into the template
 	htmlTpl = htmlTpl.Funcs(
 		template.FuncMap{
