@@ -175,7 +175,14 @@ func main() {
 	r.Get("/reset-pw", users.ResetPassword)
 	r.Post("/reset-pw", users.ProcessResetPassword)
 
-	r.Get("/galleries/new", galleries.New)
+	// galleries
+	r.Route("/galleries", func(r chi.Router) {
+		// all subroutes in this group require login
+		r.Group(func(r chi.Router) {
+			r.Use(umw.RequireUser)
+			r.Get("/new", galleries.New)
+		})
+	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
