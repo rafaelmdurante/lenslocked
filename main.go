@@ -132,14 +132,12 @@ func main() {
 	galleries := controllers.Galleries{
 		GalleryService: &galleryService,
 	}
-	galleries.Templates.New = views.Must(views.ParseFS(
-		templates.FS,
-		"galleries/new.gohtml", "tailwind.gohtml",
-	))
-	galleries.Templates.Edit = views.Must(views.ParseFS(
-		templates.FS,
-		"galleries/edit.gohtml", "tailwind.gohtml",
-	))
+	galleries.Templates.New = views.Must(views.ParseFS(templates.FS,
+		"galleries/new.gohtml", "tailwind.gohtml"))
+	galleries.Templates.Edit = views.Must(views.ParseFS(templates.FS,
+		"galleries/edit.gohtml", "tailwind.gohtml"))
+	galleries.Templates.Index = views.Must(views.ParseFS(templates.FS,
+		"galleries/index.gohtml", "tailwind.gohtml"))
 
 	// set up router and routes
 	r := chi.NewRouter()
@@ -186,8 +184,9 @@ func main() {
 		// all subroutes in this group require login
 		r.Group(func(r chi.Router) {
 			r.Use(umw.RequireUser)
-			r.Get("/new", galleries.New)
+			r.Get("/", galleries.Index)
 			r.Post("/", galleries.Create)
+			r.Get("/new", galleries.New)
 			r.Get("/{id}/edit", galleries.Edit)
 			r.Post("/{id}", galleries.Update)
 		})
