@@ -181,6 +181,8 @@ func main() {
 
 	// galleries
 	r.Route("/galleries", func(r chi.Router) {
+		// routes that do not require login
+		r.Get("/{id}", galleries.Show)
 		// all subroutes in this group require login
 		r.Group(func(r chi.Router) {
 			r.Use(umw.RequireUser)
