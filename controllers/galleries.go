@@ -172,12 +172,12 @@ func (g Galleries) Show(w http.ResponseWriter, r *http.Request) {
 
 	// We are going to pseudo-randomly come up with 20 images to render for our
 	// gallery until we actually support uploading images. These images will use
-	// placekitten.com, which gives us cat images.
+	// placecats.com, which gives us cat images.
 	for i := 0; i < 20; i++ {
 		// width and heigh are random values between 200 and 700
 		w, h := rand.Intn(500)+200, rand.Intn(500)+200
 		// using the width and height, we generate a URL
-		catImageURL := fmt.Sprintf("https://placekitten.com/%d/%d", w, h)
+		catImageURL := fmt.Sprintf("https://placecats.com/%d/%d", w, h)
 		// then add the URL to our images
 		data.Images = append(data.Images, catImageURL)
 	}
